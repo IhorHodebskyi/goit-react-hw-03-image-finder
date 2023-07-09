@@ -1,7 +1,6 @@
 import { Component } from 'react';
 
 import { Overlay, Div } from './Modal.styled';
-const modalRoot = document.querySelector('#root');
 
 export default class Modal extends Component {
   componentDidMount() {
