@@ -3,79 +3,98 @@ import { Component } from 'react';
 import { DivApp } from './App.styled';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
-import { getAllImages } from 'api/Images';
+
 import { Button } from './Button/Button';
 import { Loader } from './Loader/Loader';
 import Modal from './Modal/Modal';
+import * as Images from '../api/Images';
 export class App extends Component {
   state = {
     searchName: '',
     page: 1,
-    images: null,
+    images: [],
     imagesOnPage: 0,
     totalImages: 0,
     isLoading: false,
     showModal: false,
     error: null,
-    currentImageUrl: null,
-    currentImageDescription: null,
   };
 
   componentDidUpdate(prevProps, prevState) {
     const { searchName, page } = this.state;
-
-    if (prevState.searchName !== searchName) {
-      this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
-
-      console.log(searchName);
-
-      getAllImages(searchName)
-        .then(({ hits, totalHits }) => {
-          const imagesArray = hits.map(hit => ({
-            id: hit.id,
-            description: hit.tags,
-            smallImage: hit.webformatURL,
-            largeImage: hit.largeImageURL,
-          }));
-
-          return this.setState({
-            page: 1,
-            images: imagesArray,
-            imagesOnPage: imagesArray.length,
-            totalImages: totalHits,
-          });
-        })
-        .catch(error => this.state({ error }))
-        .finally(() =>
-          this.setState(({ isLoading }) => ({ isLoading: !isLoading }))
-        );
+    if (prevState.searchName !== searchName || prevState.page !== page) {
+      this.getAllImages(searchName, page);
     }
+    // if (prevState.searchName !== searchName) {
+    //   this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
 
-    if (prevState.page !== page && page !== 1) {
-      this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
+    //   console.log(searchName);
 
-      getAllImages(searchName, page)
-        .then(({ hits }) => {
-          const imagesArray = hits.map(hit => ({
-            id: hit.id,
-            description: hit.tags,
-            smallImage: hit.webformatURL,
-            largeImage: hit.largeImageURL,
-          }));
+    //   getAllImages(searchName)
+    //     .then(({ hits, totalHits }) => {
+    //       const imagesArray = hits.map(hit => ({
+    //         page: 1,
+    //         id: hit.id,
+    //         description: hit.tags,
+    //         smallImage: hit.webformatURL,
+    //         largeImage: hit.largeImageURL,
+    //       }));
 
-          return this.setState(({ images, imagesOnPage }) => {
-            return {
-              images: [...images, ...imagesArray],
-              imagesOnPage: imagesOnPage + imagesArray.length,
-            };
-          });
-        })
-        .catch(error => this.setState({ error }))
-        .finally(() =>
-          this.setState(({ isLoading }) => ({ isLoading: !isLoading }))
-        );
-    }
+    //       return this.setState({
+    //         page: 1,
+    //         images: imagesArray,
+    //         imagesOnPage: imagesArray.length,
+    //         totalImages: totalHits,
+    //       });
+    //     })
+    //     .catch(error => this.state({ error }))
+    //     .finally(() =>
+    //       this.setState(({ isLoading }) => ({ isLoading: !isLoading }))
+    //     );
+    // }
+
+    // if (prevState.searchName !== searchName || prevState.page !== page) {
+    //   this.setState(({ isLoading }) => ({ isLoading: !isLoading }));
+
+    //   getAllImages(searchName, page)
+    //     .then(({ hits }) => {
+    //       const imagesArray = hits.map(hit => ({
+    //         page: 1,
+    //         id: hit.id,
+    //         description: hit.tags,
+    //         smallImage: hit.webformatURL,
+    //         largeImage: hit.largeImageURL,
+    //       }));
+
+    //       return this.setState(({ images, imagesOnPage }) => {
+    //         return {
+    //           images: [...images, ...imagesArray],
+    //           imagesOnPage: imagesArray.length,
+    //         };
+    //       });
+    //     })
+    //     .catch(error => this.setState({ error }))
+    //     .finally(() =>
+    //       this.setState(({ isLoading }) => ({ isLoading: !isLoading }))
+    //     );
+    // }
   }
+
+  getAllImages = async (searchName, page) => {
+    try {
+      this.setState({ isLoading: true });
+      const { hits } = await Images.getAllImages(searchName, page);
+
+      this.setState(prevState => ({
+        images: [...prevState.images, ...hits],
+        imagesOnPage: hits.length,
+      }));
+    } catch (error) {
+      console.log(error);
+    } finally {
+      this.setState({ isLoading: false });
+    }
+  };
 
   onNextFetch = () => {
     this.setState(({ page }) => ({ page: page + 1 }));
@@ -99,14 +118,23 @@ export class App extends Component {
   };
 
   handleFormSubmit = searchName => {
-    this.setState({ searchName });
+    this.setState({
+      searchName,
+      page: 1,
+      images: [],
+      imagesOnPage: 0,
+      totalImages: 0,
+      isLoading: false,
+      showModal: false,
+      error: null,
+    });
   };
 
   render() {
     const {
       images,
       imagesOnPage,
-      totalImages,
+
       isLoading,
       showModal,
       currentImageUrl,
@@ -124,7 +152,7 @@ export class App extends Component {
           {images && <ImageGallery images={images} openModal={openModal} />}
           {isLoading && <Loader />}
 
-          {imagesOnPage >= 12 && imagesOnPage < totalImages && (
+          {imagesOnPage === 12 && !isLoading && (
             <Button onNextFetch={onNextFetch} />
           )}
 
